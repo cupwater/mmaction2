@@ -1094,7 +1094,7 @@ class DecordDecode:
 
     def __init__(self, mode='accurate'):
         self.mode = mode
-        assert mode in ['accurate', 'efficient']
+        assert mode in ['accurate', 'efficient', 'rgb_diff']
 
     def __call__(self, results):
         """Perform the Decord decoding.
@@ -1121,6 +1121,29 @@ class DecordDecode:
                 container.seek(idx)
                 frame = container.next()
                 imgs.append(frame.asnumpy())
+        elif self.mode == 'rgb_diff':
+            # generate rgb difference using continuous frames
+            container.seek(0)
+            imgs = list()
+
+            if frame_inds[0] != 0:
+                container.seek(frame_inds[0]-1)
+                frame = container.next()
+            else:
+                container.seek(frame_inds[0])
+                frame = container.next()
+            rgb_diff = container.next().asnumpy() - frame.asnumpy()
+            imgs.append(rgb_diff)
+
+            for idx in frame_inds[1:]:
+                if idx != 0:
+                    container.seek(idx-1)
+                else:
+                    container.seek(0)
+                frame = container.next()
+                rgb_diff = container.next().asnumpy() - frame.asnumpy()
+                imgs.append(rgb_diff)
+
 
         results['video_reader'] = None
         del container
