@@ -137,6 +137,49 @@ class Recognizer2D(BaseRecognizer):
                                       cls_score.size()[0] // batches)
         return cls_score
 
+    def forward_test_distill(self, imgs):
+        """Defines the computation performed at every call when used for distillation."""
+        batches = imgs.shape[0]
+        imgs = imgs.reshape((-1, ) + imgs.shape[2:])
+        num_segs = imgs.shape[0] // batches
+        outputs_dict = {}
+        x = self.extract_feat(imgs)
+        outputs_dict['teacher_feature_map'] = x
+
+        if self.backbone_from in ['torchvision', 'timm']:
+            if len(x.shape) == 4 and (x.shape[2] > 1 or x.shape[3] > 1):
+                # apply adaptive avg pooling
+                x = nn.AdaptiveAvgPool2d(1)(x)
+            x = x.reshape((x.shape[0], -1))
+            x = x.reshape(x.shape + (1, 1))
+
+        if self.with_neck:
+            x = [
+                each.reshape((-1, num_segs) +
+                             each.shape[1:]).transpose(1, 2).contiguous()
+                for each in x
+            ]
+            x, _ = self.neck(x)
+            outputs_dict['teacher_neck_output'] = x
+            x = x.squeeze(2)
+            num_segs = 1
+
+        if self.feature_extraction:
+            # perform spatial pooling
+            avg_pool = nn.AdaptiveAvgPool2d(1)
+            x = avg_pool(x)
+            # squeeze dimensions
+            x = x.reshape((batches, num_segs, -1))
+            # temporal average pooling
+            x = x.mean(axis=1)
+            outputs_dict['teacher_temporal_output'] = x
+            return x
+
+        # should have cls_head if not extracting features
+        cls_score = self.cls_head(x, num_segs)
+        outputs_dict['teacher_cls_score'] = cls_score
+        return outputs_dict
+
     def forward_test(self, imgs):
         """Defines the computation performed at every call when evaluation and
         testing."""
