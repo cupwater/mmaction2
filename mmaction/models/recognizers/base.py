@@ -256,7 +256,7 @@ class BaseRecognizer(nn.Module, metaclass=ABCMeta):
 
         return loss, log_vars
 
-    def forward(self, imgs, label=None, return_loss=True, **kwargs):
+    def forward(self, imgs, label=None, distill_target=None, return_loss=True, **kwargs):
         """Define the computation performed at every call."""
         if kwargs.get('gradcam', False):
             del kwargs['gradcam']
@@ -266,11 +266,14 @@ class BaseRecognizer(nn.Module, metaclass=ABCMeta):
                 raise ValueError('Label should not be None.')
             if self.blending is not None:
                 imgs, label = self.blending(imgs, label)
-            return self.forward_train(imgs, label, **kwargs)
+            if distill_target:
+                return self.forward_train(imgs, label, **kwargs)
+            else:
+                return self.forward_train(imgs, label, **kwargs)
 
         return self.forward_test(imgs, **kwargs)
 
-    def train_step(self, data_batch, optimizer, **kwargs):
+    def train_step(self, data_batch, optimizer, distii_target=None, **kwargs):
         """The iteration step during training.
 
         This method defines an iteration step during training, except for the
@@ -304,7 +307,10 @@ class BaseRecognizer(nn.Module, metaclass=ABCMeta):
             assert item in data_batch
             aux_info[item] = data_batch[item]
 
-        losses = self(imgs, label, return_loss=True, **aux_info)
+        if distii_target:
+            losses = self(imgs, label, distill_target=distii_target, return_loss=True, **aux_info)
+        else:
+            losses = self(imgs, label, return_loss=True, **aux_info)
 
         loss, log_vars = self._parse_losses(losses)
 
