@@ -1,4 +1,6 @@
 # Byte-compiled / optimized / DLL files
+*.onnx
+*.sh
 tools/data
 __pycache__/
 *.py[cod]

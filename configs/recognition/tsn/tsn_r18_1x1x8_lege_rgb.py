@@ -1,7 +1,8 @@
 _base_ = [
-    '../../_base_/models/tsn_r18.py', '../../_base_/schedules/sgd_100e.py',
+    '../../_base_/models/tsn_r18_lege.py', '../../_base_/schedules/sgd_100e.py',
     '../../_base_/default_runtime.py'
 ]
+
 
 # dataset settings
 dataset_type = 'VideoDataset'
