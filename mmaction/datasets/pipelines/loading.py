@@ -1094,7 +1094,7 @@ class DecordDecode:
 
     def __init__(self, mode='accurate'):
         self.mode = mode
-        assert mode in ['accurate', 'efficient', 'rgb_diff']
+        assert mode in ['accurate', 'efficient', 'rgb_diff', 'adj_cat']
 
     def __call__(self, results):
         """Perform the Decord decoding.
@@ -1143,6 +1143,34 @@ class DecordDecode:
                 frame = container.next()
                 rgb_diff = container.next().asnumpy() - frame.asnumpy()
                 imgs.append(rgb_diff)
+        elif self.mode == 'adj_cat':
+            # generate rgb difference using continuous frames
+            container.seek(0)
+            imgs = list()
+            if frame_inds[0] != 0:
+                container.seek(frame_inds[0]-1)
+            else:
+                container.seek(frame_inds[0])
+            # convert rgb to gray
+            frame = container.next().asnumpy()
+            frame= 0.299*frame[:,:,0:1] + 0.587*frame[:,:,1:2] + 0.114*frame[:,:,2:]
+            next_frame = container.next().asnumpy()
+            next_frame= 0.299*next_frame[:,:,0:1] + 0.587*next_frame[:,:,1:2] + 0.114*next_frame[:,:,2:]
+
+            adj_cat = np.concatenate((frame, next_frame, next_frame), axis=2)
+            imgs.append(adj_cat)
+
+            for idx in frame_inds[1:]:
+                if idx != 0:
+                    container.seek(idx-1)
+                else:
+                    container.seek(0)
+                frame = container.next().asnumpy()
+                frame= 0.299*frame[:,:,0:1] + 0.587*frame[:,:,1:2] + 0.114*frame[:,:,2:]
+                next_frame = container.next().asnumpy()
+                next_frame= 0.299*next_frame[:,:,0:1] + 0.587*next_frame[:,:,1:2] + 0.114*next_frame[:,:,2:]
+                adj_cat = np.concatenate((frame, next_frame, next_frame), axis=2)
+                imgs.append(adj_cat)
 
 
         results['video_reader'] = None

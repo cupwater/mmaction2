@@ -3,7 +3,6 @@ _base_ = [
     '../../_base_/default_runtime.py'
 ]
 
-
 # dataset settings
 dataset_type = 'VideoDataset'
 data_root = 'data/lege/videos'
@@ -16,7 +15,7 @@ img_norm_cfg = dict(
 train_pipeline = [
     dict(type='DecordInit'),
     dict(type='DenseSampleFrames', clip_len=1, frame_interval=1, num_clips=8),
-    dict(type='DecordDecode'),
+    dict(type='DecordDecode', mode='adj_cat'),
     dict(
         type='MultiScaleCrop',
         input_size=224,
@@ -38,7 +37,7 @@ val_pipeline = [
         frame_interval=1,
         num_clips=8,
         test_mode=True),
-    dict(type='DecordDecode'),
+    dict(type='DecordDecode', mode='adj_cat'),
     dict(type='Resize', scale=(-1, 256)),
     dict(type='CenterCrop', crop_size=224),
     dict(type='Normalize', **img_norm_cfg),
@@ -54,7 +53,7 @@ test_pipeline = [
         frame_interval=1,
         num_clips=8,
         test_mode=True),
-    dict(type='DecordDecode'),
+    dict(type='DecordDecode', mode='adj_cag'),
     dict(type='Resize', scale=(-1, 256)),
     dict(type='TenCrop', crop_size=224),
     dict(type='Normalize', **img_norm_cfg),
@@ -85,7 +84,5 @@ data = dict(
 evaluation = dict(
     interval=5, metrics=['top_k_accuracy', 'mean_class_accuracy'])
 
-checkpoint_config = dict(interval=10)
-
 # runtime settings
-work_dir = './work_dirs/tsn_r18_1x1x8_100e_lege_rgb/'
+work_dir = './work_dirs/tsn_r18_1x1x8_100e_lege_adjcat/'
